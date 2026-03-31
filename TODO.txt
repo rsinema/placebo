@@ -1,0 +1,19 @@
+- [ ] Add a analytics bot
+    - give it read only access to the db
+    - separate bot from the check in one. needs a new token
+- [ ] check in bot improvements
+    - time context. I don't want to manage UTC time, it should convert to UTC from my timezone
+    - multi turn convos
+    - multi turn runs. Supervisor pattern. i.e. I can specify multiple actions in one message
+- [ ] add functionality for multiple llm providers (openai, anthro, grok, etc.)
+    - add env var for which model to use
+    - dynamically use model provider that is set by the user
+- [ ] add langsmith functionality (i.e. prompt management)
+- [ ] add precommit checks with prek
+
+maybe add on (possibly different app)
+- [ ] add new product function of gym tracking.
+    - similar concept, except track lifts
+    - agent will create new workout/set/rep/weight counters from message (i.e. msg: "I did 3x3 on deadlift for 275, 315, 315")
+    - if workout already exists, add data to it
+    - visualizations and analytics derived from the data
