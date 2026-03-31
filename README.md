@@ -4,7 +4,7 @@ A personal health tracking system for running self-experiments on supplements, d
 
 ## Why
 
-I wanted a way to actually measure whether the things I try — creatine, cold exposure, new sleep routines — are doing anything or if I'm just experiencing the placebo effect. Most health apps track one thing well but don't let you overlay experiments against subjective metrics over time. Placebo is built around that workflow: define what you want to track, run named experiments, and compare the data.
+I have been listening to the Huberman Labs podcast recently, and there are several pieces of advice that I have wanted to apply to my life. I wanted to be data driven about it and have a way to measure whether the things I try (creatine, other supplements, cold exposure, new sleep routines) are doing anything for my mental, physical or emotional health. But I am really lazy about journaling so I made a bot that will text me and remove the friction of tracking it. Then there is a dashboard that visualizes the data to see analytics about any metrics that I want to track (mood, stress, energy, etc.) on a time scale while also displaying any experiments that were run.
 
 ## How It Works
 
