@@ -10,6 +10,7 @@
     - dynamically use model provider that is set by the user
 - [ ] add langsmith functionality (i.e. prompt management)
 - [ ] add precommit checks with prek
+- [ ] add claude.md or agents.md so the know to use bun and uv
 
 maybe add on (possibly different app)
 - [ ] add new product function of gym tracking.
