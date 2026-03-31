@@ -42,7 +42,7 @@ export default function ComparisonView({ experimentId }: Props) {
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
           <XAxis dataKey="name" fontSize={12} tick={{ fill: "var(--text-muted)" }} />
-          <YAxis fontSize={12} tick={{ fill: "var(--text-muted)" }} />
+          <YAxis fontSize={12} tick={{ fill: "var(--text-muted)" }} domain={[0, 10]} />
           <Tooltip
             contentStyle={{
               background: "var(--bg-card)",

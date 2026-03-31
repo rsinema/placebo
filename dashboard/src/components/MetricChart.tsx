@@ -42,7 +42,7 @@ export default function MetricChart({ metricId, metricName, start, end, experime
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
           <XAxis dataKey="date" fontSize={12} tick={{ fill: "var(--text-muted)" }} />
-          <YAxis fontSize={12} tick={{ fill: "var(--text-muted)" }} />
+          <YAxis fontSize={12} tick={{ fill: "var(--text-muted)" }} domain={[0, 10]} />
           <Tooltip
             contentStyle={{
               background: "var(--bg-card)",

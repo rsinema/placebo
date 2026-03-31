@@ -54,8 +54,8 @@ export default function CorrelationPlot({ metrics }: Props) {
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-              <XAxis dataKey="value_a" name={nameA} fontSize={12} type="number" domain={["dataMin - 1", "dataMax + 1"]} tick={{ fill: "var(--text-muted)" }} />
-              <YAxis dataKey="value_b" name={nameB} fontSize={12} type="number" domain={["dataMin - 1", "dataMax + 1"]} tick={{ fill: "var(--text-muted)" }} />
+              <XAxis dataKey="value_a" name={nameA} fontSize={12} type="number" domain={[0, 10]} tick={{ fill: "var(--text-muted)" }} />
+              <YAxis dataKey="value_b" name={nameB} fontSize={12} type="number" domain={[0, 10]} tick={{ fill: "var(--text-muted)" }} />
               <Tooltip
                 cursor={{ strokeDasharray: "3 3" }}
                 contentStyle={{
