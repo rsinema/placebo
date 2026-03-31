@@ -1,0 +1,15 @@
+[project]
+name = "placebo-api"
+version = "0.1.0"
+description = "FastAPI backend for Placebo dashboard"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "asyncpg>=0.30.0",
+    "pydantic-settings>=2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
