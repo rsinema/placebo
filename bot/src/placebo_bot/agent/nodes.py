@@ -329,22 +329,41 @@ async def handle_skip(state: AgentState) -> dict:
 
 async def handle_set_schedule(state: AgentState) -> dict:
     last_msg = state["messages"][-1].content
-    # Try to extract HH:MM
     import re
 
-    match = re.search(r"(\d{1,2}):(\d{2})", last_msg)
+    from placebo_bot.scheduler import reschedule_from_db
+
+    # Match HH:MM with optional AM/PM (e.g. "9:00 AM", "14:30", "1:20pm")
+    match = re.search(r"(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?", last_msg)
     if not match:
-        return {"response_text": "Please provide a time in HH:MM format (24h). Example: 'set check-in to 09:00'"}
+        return {"response_text": "Please provide a time like '9:00 AM', '2:30 PM', or '14:30'."}
 
     hour, minute = int(match.group(1)), int(match.group(2))
-    if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        return {"response_text": "Invalid time. Use 24h format, e.g. 14:30."}
+    period = match.group(3)
 
+    if period:
+        period = period.lower()
+        if hour < 1 or hour > 12:
+            return {"response_text": "When using AM/PM, the hour must be 1–12. Example: '9:00 AM'."}
+        if period == "am" and hour == 12:
+            hour = 0
+        elif period == "pm" and hour != 12:
+            hour += 12
+
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return {"response_text": "Invalid time. Example: '9:00 AM', '2:30 PM', or '14:30'."}
+
+    tz = settings.checkin_timezone
     await db.set_bot_setting("checkin_hour", str(hour))
     await db.set_bot_setting("checkin_minute", str(minute))
+    await db.set_bot_setting("checkin_timezone", tz)
+    await reschedule_from_db()
 
+    # Show user-friendly 12h time in confirmation
+    display_period = "AM" if hour < 12 else "PM"
+    display_hour = hour % 12 or 12
     return {
-        "response_text": f"Check-in time set to {hour:02d}:{minute:02d} {settings.checkin_timezone}. I'll update the schedule.",
+        "response_text": f"Check-in time updated to {display_hour}:{minute:02d} {display_period} ({tz}). Schedule is now active!",
     }
 
 

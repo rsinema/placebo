@@ -17,21 +17,36 @@ Four Docker services:
 - **Dashboard** (`dashboard/`) — Vite + React + React Router + Recharts. Served by nginx which proxies `/api` requests to the FastAPI container.
 - **Postgres** (`db/init.sql`) — Stores `metrics`, `checkin_responses`, `experiments`, and `bot_settings` (key-value store for chat_id, schedule, etc.).
 
+## Tooling
+
+- **Python dependency management:** Use `uv` (not pip/poetry). Run Python commands via `uv run`.
+- **Python testing:** Use `pytest`.
+- **Frontend package management:** Use `bun` (not npm/yarn).
+
 ## Common Commands
 
 ```bash
 # Start all services (from repo root)
 docker compose up --build
 
-# Run bot tests (from bot/ dir, or repo root with pytest picked up)
-cd bot && python -m pytest src/placebo_bot/test_scheduler.py -v
-cd bot && python -m pytest src/placebo_bot/test_telegram_handler.py -v
+# Install bot dependencies
+cd bot && uv sync
+
+# Run all bot tests
+cd bot && uv run pytest -v
+
+# Run a specific bot test file
+cd bot && uv run pytest src/placebo_bot/test_scheduler.py -v
+cd bot && uv run pytest src/placebo_bot/test_telegram_handler.py -v
 
 # Rebuild a single service
 docker compose up --build bot
 
+# Install dashboard dependencies
+cd dashboard && bun install
+
 # Dashboard dev (hot reload)
-cd dashboard && bun install && bun run dev
+cd dashboard && bun run dev
 ```
 
 ## Key Implementation Details

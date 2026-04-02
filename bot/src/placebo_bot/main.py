@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 
 from placebo_bot import db
 from placebo_bot.config import settings
-from placebo_bot.scheduler import schedule_checkin
+from placebo_bot.scheduler import reschedule_from_db, schedule_checkin
 from placebo_bot.telegram_handler import handle_message, help_command, start_command
 
 logging.basicConfig(
@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 async def post_init(app) -> None:
     await db.init_pool(settings.database_url)
+    # Initial schedule_checkin call to register the app reference, then
+    # reschedule from DB values (which may differ from env defaults).
     schedule_checkin(app, settings.checkin_hour, settings.checkin_minute, settings.checkin_timezone)
+    await reschedule_from_db()
     logger.info("Bot initialized — DB pool ready, check-in scheduled.")
 
 
