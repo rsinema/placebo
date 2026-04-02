@@ -1,5 +1,6 @@
 import logging
 from datetime import time
+from zoneinfo import ZoneInfo
 
 from telegram.ext import Application
 
@@ -24,7 +25,7 @@ async def _daily_checkin_job(context) -> None:
     await trigger_checkin(chat_id, send_fn)
 
 
-def schedule_checkin(app: Application, hour: int, minute: int) -> None:
+def schedule_checkin(app: Application, hour: int, minute: int, timezone: str = "UTC") -> None:
     """Schedule the daily check-in job."""
     job_queue = app.job_queue
 
@@ -35,7 +36,7 @@ def schedule_checkin(app: Application, hour: int, minute: int) -> None:
 
     job_queue.run_daily(
         _daily_checkin_job,
-        time=time(hour=hour, minute=minute),
+        time=time(hour=hour, minute=minute, tzinfo=ZoneInfo(timezone)),
         name="daily_checkin",
     )
-    logger.info("Scheduled daily check-in at %02d:%02d UTC", hour, minute)
+    logger.info("Scheduled daily check-in at %02d:%02d %s", hour, minute, timezone)

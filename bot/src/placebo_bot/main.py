@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def post_init(app) -> None:
     await db.init_pool(settings.database_url)
-    schedule_checkin(app, settings.checkin_hour, settings.checkin_minute)
+    schedule_checkin(app, settings.checkin_hour, settings.checkin_minute, settings.checkin_timezone)
     logger.info("Bot initialized — DB pool ready, check-in scheduled.")
 
 
