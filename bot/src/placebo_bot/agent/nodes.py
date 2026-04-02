@@ -344,7 +344,7 @@ async def handle_set_schedule(state: AgentState) -> dict:
     await db.set_bot_setting("checkin_minute", str(minute))
 
     return {
-        "response_text": f"Check-in time set to {hour:02d}:{minute:02d} UTC. I'll update the schedule.",
+        "response_text": f"Check-in time set to {hour:02d}:{minute:02d} {settings.checkin_timezone}. I'll update the schedule.",
     }
 
 
