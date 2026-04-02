@@ -43,7 +43,12 @@ def _update_state(chat_id: int, result: dict) -> None:
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
+    user_id = update.message.from_user.id
     await db.set_bot_setting("chat_id", str(chat_id))
+    # Only set authorized_user_id on first setup — don't overwrite an existing owner
+    existing = await db.get_bot_setting("authorized_user_id")
+    if not existing:
+        await db.set_bot_setting("authorized_user_id", str(user_id))
     _get_state(chat_id)  # initialize state
     await update.message.reply_text(
         "Welcome to Placebo! I'm your health tracking assistant.\n\n"
@@ -80,6 +85,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if not text:
         return
+
+    # Reject messages from non-authorized users
+    authorized_id_str = await db.get_bot_setting("authorized_user_id")
+    if authorized_id_str:
+        authorized_id = int(authorized_id_str)
+        if update.message.from_user.id != authorized_id:
+            logger.warning("Rejected message from unauthorized user %s", update.message.from_user.id)
+            return
 
     state = _get_state(chat_id)
     state["messages"] = state.get("messages", [])[-10:] + [HumanMessage(content=text)]
