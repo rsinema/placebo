@@ -2,7 +2,6 @@
     - give it read only access to the db
     - separate bot from the check in one. needs a new token
 - [ ] check in bot improvements
-    - time context. I don't want to manage UTC time, it should convert to UTC from my timezone
     - multi turn convos
     - multi turn runs. Supervisor pattern. i.e. I can specify multiple actions in one message
 - [ ] add functionality for multiple llm providers (openai, anthro, grok, etc.)
@@ -10,7 +9,6 @@
     - dynamically use model provider that is set by the user
 - [ ] add langsmith functionality (i.e. prompt management)
 - [ ] add precommit checks with prek
-- [ ] add claude.md or agents.md so the know to use bun and uv
 
 maybe add on (possibly different app)
 - [ ] add new product function of gym tracking.
