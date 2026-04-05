@@ -22,6 +22,14 @@ services:
       db:
         condition: service_healthy
 
+  analytics_bot:
+    build: ./analytics_bot
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: ./api
     restart: unless-stopped

@@ -1,6 +1,6 @@
 # Placebo — Agent Guide
 
-Personal health tracking system: a Telegram bot for daily check-ins via natural language, a FastAPI read-only backend, and a React dashboard with Recharts for visualization.
+Personal health tracking system: a Telegram bot for daily check-ins via natural language, an analytics bot for reactive and proactive health data analysis, a FastAPI read-only backend, and a React dashboard with Recharts for visualization.
 
 ## Architecture
 
@@ -15,9 +15,17 @@ Personal health tracking system: a Telegram bot for daily check-ins via natural 
 │  (React)    │     │ (FastAPI)   │
 │  nginx:3000 │     │ port 8000   │
 └─────────────┘     └─────────────┘
+
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│  Telegram   │────▶│  Analytics Bot   │────▶│  Postgres   │
+│   User      │◀────│  (LangGraph,     │     │  (read-    │
+│             │     │   matplotlib)    │     │   only)     │
+└─────────────┘     └──────────────────┘     └─────────────┘
 ```
 
 **Bot** — Python 3.12, `python-telegram-bot` v21+, LangGraph agent. Receives messages, classifies intent via Moonshot LLM, executes actions (check-ins, metric management, experiments). State is in-memory keyed by `chat_id`.
+
+**Analytics Bot** — Python 3.12, separate read-only Telegram bot for health data analysis. LangGraph agent with 9 intent classifiers (metric_summary, trend, correlation, experiment_analysis, multi_metric_overview, period_comparison, streak, correlation_ranking, boolean_frequency), matplotlib charts with `Agg` backend, and a weekly digest scheduler. All DB access is `SELECT` only — no writes.
 
 **API** — FastAPI, read-only endpoints for dashboard. Shares the Postgres DB with the bot.
 
@@ -38,12 +46,16 @@ cd api && uv sync && uv run uvicorn placebo_api.main:app --reload --port 8000
 # Bot dev (from repo root)
 cd bot && uv sync && uv run python -m placebo_bot.main
 
+# Analytics bot dev (from repo root)
+cd analytics_bot && uv sync && uv run python -m placebo_analytics.main
+
 # Test Moonshot API connectivity
 cd bot && uv run python src/placebo_bot/test_moonshot.py
 
-# Lint (bot + api)
+# Lint (bot, api, analytics_bot)
 cd bot && uv run ruff check src/
 cd api && uv run ruff check src/
+cd analytics_bot && uv run ruff check src/
 ```
 
 ## Project Structure
@@ -51,7 +63,7 @@ cd api && uv run ruff check src/
 ```
 placebo/
 ├── db/init.sql              # Postgres schema + seed metrics
-├── docker-compose.yml       # All 4 services (db, bot, api, dashboard)
+├── docker-compose.yml       # All 5 services (db, bot, analytics_bot, api, dashboard)
 ├── .env.example             # Template for .env
 ├── bot/                     # Telegram bot (Python)
 │   ├── pyproject.toml       # uv-managed deps
@@ -67,6 +79,22 @@ placebo/
 │           ├── graph.py     # LangGraph StateGraph construction
 │           ├── nodes.py     # All node functions (async)
 │           ├── state.py     # AgentState TypedDict
+│           └── prompts.py    # LLM prompt strings
+├── analytics_bot/          # Analytics bot (Python, read-only)
+│   ├── pyproject.toml
+│   ├── Dockerfile
+│   └── src/placebo_analytics/
+│       ├── main.py          # Entry point, ApplicationBuilder, handlers
+│       ├── telegram_handler.py  # Handlers, rate limiting, graph invocation
+│       ├── scheduler.py     # Weekly digest JobQueue scheduling
+│       ├── db.py            # asyncpg pool + analytical SELECT queries
+│       ├── models.py        # dataclass models (Metric, Experiment, etc.)
+│       ├── config.py        # pydantic-settings
+│       ├── charts.py        # matplotlib Agg backend, chart generation
+│       └── agent/
+│           ├── graph.py     # LangGraph StateGraph (9 intents → 9 handlers)
+│           ├── nodes.py     # All handler node functions
+│           ├── state.py     # AnalyticsState TypedDict
 │           └── prompts.py    # LLM prompt strings
 ├── api/                     # FastAPI backend
 │   ├── pyproject.toml
@@ -158,6 +186,46 @@ The routing function itself is passed to `add_conditional_edges` and called with
 4. `ask_next_or_complete` → if more metrics, asks next question; else ends
 5. All check-in nodes use `END` as terminal (no cycle back to classify_intent within a check-in)
 
+## Analytics Bot
+
+The analytics bot is a **read-only** LangGraph agent with 9 specific intent handlers. Unlike the check-in bot, it is **stateless per message** — no `_state_store` persistence between messages.
+
+### State (`AnalyticsState`)
+
+- `messages`: `Annotated[list, add_messages]` — rolling 5-message context window
+- `intent`: classified intent name
+- `chat_id`: Telegram chat ID
+- `response_text`: natural language response to send
+- `chart_bytes`: PNG image bytes (None if no chart)
+- `suggested_followups`: 1-2 follow-up question suggestions
+
+### Intent Routing
+
+```
+Message → classify_intent → [9 intent handlers] → END
+```
+
+Each handler (e.g. `handle_trend`, `handle_correlation`) executes a DB query, generates a matplotlib chart if applicable, synthesizes a response via LLM, and returns.
+
+### Chart Generation (`charts.py`)
+
+- **`matplotlib.use("Agg")`** is set as the very first matplotlib line — required for headless Docker environment
+- All charts return `bytes` (PNG) via `BytesIO` — no disk writes
+- Telegram sends charts via `InputFile(BytesIO(chart_bytes), filename="chart.png")`
+- Chart functions: `metric_time_series`, `experiment_comparison`, `correlation_scatter`, `week_comparison`, `multi_metric_overview`
+
+### Weekly Digest (`scheduler.py`)
+
+- Scheduled via `job_queue.run_daily` with `days=(day,)` on `ANALYTICS_DIGEST_DAY` at the configured UTC time
+- Stores `analytics_chat_id` in `bot_settings` (distinct from check-in bot's `chat_id`)
+- Sends: per-metric summaries + rolling avg charts, active experiment status, top 2 correlations, LLM-synthesized narrative paragraph
+- Sends charts as media group (Telegram allows up to 10 per album)
+- Graceful degradation: if LLM fails, sends text-only version; if DB fails, logs and skips
+
+### Rate Limiting
+
+Simple in-memory sliding window: 5 messages per 10 seconds per `chat_id`. Uses `_rate_limit_store: dict[int, list[datetime]]`.
+
 ## Database
 
 ### Schema (Postgres 16)
@@ -172,6 +240,7 @@ The routing function itself is passed to `add_conditional_edges` and called with
 - `response_value` is **always TEXT** in the DB (numeric values stored as strings like `"7"`), cast to float in API queries
 - `archived_at` on metrics (soft delete) — use `active_only=False` in `get_metric_by_name` when reactivating
 - `checkin_hour`/`checkin_minute` stored as strings in `bot_settings` despite being integers in config
+- The analytics bot stores its `chat_id` as `analytics_chat_id` in `bot_settings` to avoid colliding with the check-in bot
 
 ## API
 
@@ -192,11 +261,16 @@ The routing function itself is passed to `add_conditional_edges` and called with
 
 | Variable | Service | Notes |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | bot | From @BotFather |
-| `MOONSHOT_API_KEY` | bot | From platform.moonshot.cn |
-| `DATABASE_URL` | bot, api | `postgresql://placebo:placebo@db:5432/placebo` in Docker |
+| `PLACEBO_ENV` | bot, analytics_bot | `dev` or `prod` — selects TEST_* tokens in dev, real tokens in prod |
+| `TELEGRAM_BOT_TOKEN` | bot | Production bot token from @BotFather |
+| `TEST_BOT_TOKEN` | bot | Dev/test bot token |
+| `ANALYTICS_BOT_TOKEN` | analytics_bot | Production analytics bot token from @BotFather |
+| `TEST_ANALYTICS_BOT_TOKEN` | analytics_bot | Dev/test analytics bot token |
+| `MOONSHOT_API_KEY` | bot, analytics_bot | From platform.moonshot.cn |
+| `DATABASE_URL` | bot, analytics_bot, api | `postgresql://placebo:placebo@db:5432/placebo` in Docker |
 | `CHECKIN_HOUR`, `CHECKIN_MINUTE` | bot | Defaults: 14, 0 (UTC) |
-| `LANGSMITH_API_KEY` | bot | Optional; not wired up in code yet |
+| `ANALYTICS_DIGEST_DAY`, `ANALYTICS_DIGEST_HOUR`, `ANALYTICS_DIGEST_MINUTE` | analytics_bot | Defaults: 0 (Monday), 9, 0 (UTC) |
+| `LANGSMITH_API_KEY` | bot, analytics_bot | Optional |
 
 ## Testing
 
@@ -206,7 +280,6 @@ The routing function itself is passed to `add_conditional_edges` and called with
 
 ## Future Work (TODO.txt)
 
-- Analytics bot (separate Telegram bot with read-only DB access)
 - Multi-turn conversation improvements (supervisor pattern)
 - Multiple LLM provider support (OpenAI, Anthropic, Grok, etc.)
 - LangSmith integration for prompt management

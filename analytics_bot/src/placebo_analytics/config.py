@@ -7,25 +7,26 @@ class Settings(BaseSettings):
     placebo_env: str = "dev"  # 'dev' or 'prod'
 
     # Bot tokens — selected based on PLACEBO_ENV
-    telegram_bot_token: str = ""
-    test_bot_token: str = ""
+    analytics_bot_token: str = ""
+    test_analytics_bot_token: str = ""
     # Computed at init
     bot_token: str = ""
 
     moonshot_api_key: str
     database_url: str
-    checkin_hour: int = 14
-    checkin_minute: int = 0
+    digest_day: int = 0  # 0=Monday, 6=Sunday
+    digest_hour: int = 9
+    digest_minute: int = 0
     langsmith_api_key: str = ""
-    langsmith_project: str = "placebo"
+    langsmith_project: str = "placebo-analytics"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Resolve bot_token based on environment
         if self.placebo_env == "prod":
-            self.bot_token = self.telegram_bot_token
+            self.bot_token = self.analytics_bot_token
         else:
-            self.bot_token = self.test_bot_token
+            self.bot_token = self.test_analytics_bot_token
 
 
 settings = Settings()

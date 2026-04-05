@@ -1,7 +1,7 @@
 [project]
-name = "placebo-bot"
+name = "placebo-analytics"
 version = "0.1.0"
-description = "Telegram bot for daily health check-ins"
+description = "Telegram analytics bot — read-only health data analysis"
 requires-python = ">=3.12"
 dependencies = [
     "python-telegram-bot[job-queue]>=21.0",
@@ -10,6 +10,7 @@ dependencies = [
     "langchain-openai>=0.3.0",
     "langgraph>=0.3.0",
     "langchain-core>=0.3.0",
+    "matplotlib>=3.8",
 ]
 
 [build-system]
@@ -19,4 +20,6 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "ruff>=0.15.9",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
 ]
