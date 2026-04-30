@@ -3,6 +3,8 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import MetricDetail from "./pages/MetricDetail";
 import Experiments from "./pages/Experiments";
+import Workouts from "./pages/Workouts";
+import ExerciseDetail from "./pages/ExerciseDetail";
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/metrics/:id" element={<MetricDetail />} />
           <Route path="/experiments" element={<Experiments />} />
+          <Route path="/workouts" element={<Workouts />} />
+          <Route path="/exercises/:id" element={<ExerciseDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

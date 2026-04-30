@@ -11,6 +11,9 @@ export default function Layout() {
         <NavLink to="/experiments" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
           Experiments
         </NavLink>
+        <NavLink to="/workouts" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+          Workouts
+        </NavLink>
       </nav>
       <Outlet />
     </div>

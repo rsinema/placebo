@@ -15,7 +15,7 @@ Four Docker services:
 - **Bot** (`bot/`) — Python, `python-telegram-bot` with JobQueue for scheduling, LangGraph agent for intent classification and multi-turn conversation flows. Connects to Postgres directly, not through the API.
 - **API** (`api/`) — FastAPI, read-only endpoints (`/metrics`, `/experiments`, `/checkins`) consumed by the dashboard. Does NOT write to the DB — the bot owns all writes.
 - **Dashboard** (`dashboard/`) — Vite + React + React Router + Recharts. Served by nginx which proxies `/api` requests to the FastAPI container.
-- **Postgres** (`db/init.sql`) — Stores `metrics`, `checkin_responses`, `experiments`, and `bot_settings` (key-value store for chat_id, schedule, etc.).
+- **Postgres** (`db/migrations/`) — Stores `metrics`, `checkin_responses`, `experiments`, and `bot_settings` (key-value store for chat_id, schedule, etc.). Schema is managed by `golang-migrate/migrate`; a one-shot `migrate` Compose service runs `migrate up` against the DB on startup before the bots/API boot.
 
 ## Tooling
 
@@ -68,7 +68,7 @@ cd dashboard && bun run dev
 
 **Experiment periods** are shown as shaded overlays on time-series charts — the API returns experiment time ranges and the dashboard uses the `DateRangeFilter` to clip data.
 
-**Database schema** (`db/init.sql`): `checkin_responses` has a composite index on `(metric_id, logged_at)` — use this for efficient time-range queries per metric.
+**Database schema** (`db/migrations/`): `checkin_responses` has a composite index on `(metric_id, logged_at)` — use this for efficient time-range queries per metric. See `db/MIGRATIONS.md` for the migration workflow.
 
 ## Environment Variables
 

@@ -68,7 +68,7 @@ Everything runs locally with `docker compose up`. Single-user by design — no a
 ```
 placebo/
   docker-compose.yml
-  db/init.sql              # Database schema + seed data
+  db/migrations/           # Database schema migrations (golang-migrate)
   bot/                     # Telegram bot (Python, LangGraph)
   api/                     # FastAPI backend
   dashboard/               # React + Recharts frontend

@@ -4,20 +4,17 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     placebo_env: str = "prod"
-    telegram_bot_token: str = ""
-    test_bot_token: str = ""
+    gym_telegram_bot_token: str = ""
+    test_gym_bot_token: str = ""
     moonshot_api_key: str
     database_url: str
-    checkin_hour: int = 14
-    checkin_minute: int = 0
-    checkin_timezone: str = "UTC"
     langsmith_api_key: str = ""
-    langsmith_project: str = "placebo"
+    langsmith_project: str = "placebo-gym"
 
     @model_validator(mode="after")
     def use_test_token_in_dev(self):
-        if self.placebo_env == "dev" and self.test_bot_token:
-            self.telegram_bot_token = self.test_bot_token
+        if self.placebo_env == "dev" and self.test_gym_bot_token:
+            self.gym_telegram_bot_token = self.test_gym_bot_token
         return self
 
 
