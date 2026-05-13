@@ -26,13 +26,17 @@ A React frontend with Recharts for visualizing your data:
 - **Date range filtering** across all views
 
 ### Architecture
-The stack is four Docker containers wired together with Compose:
+The stack is five Docker containers wired together with Compose:
 - **Bot** — Python, `python-telegram-bot`, LangGraph agent for intent classification and multi-turn flows
-- **API** — FastAPI serving read-only endpoints for the dashboard
+- **API** — FastAPI serving read-only endpoints for the dashboard (also proxies backup/restore)
 - **Dashboard** — Vite + React, served via nginx which also proxies API requests
+- **Backup** — FastAPI service that runs `pg_dump`/`pg_restore` against the DB and stores snapshots in S3 (daily cron + on-demand from the UI)
 - **Postgres** — stores metrics, check-in responses, and experiments
 
 Everything runs locally with `docker compose up`. Single-user by design — no auth overhead.
+
+### Backups
+Daily snapshots upload to `s3://$BACKUP_S3_BUCKET/$BACKUP_S3_PREFIX/daily/...` and prune after 30 days. The dashboard's **Backups** page lets you back up on demand and restore from any snapshot (with a type-to-confirm modal and an automatic pre-restore safety snapshot). CLI fallbacks: `./scripts/backup.sh` and `./scripts/restore.sh`.
 
 ## Setup
 
@@ -45,6 +49,7 @@ Everything runs locally with `docker compose up`. Single-user by design — no a
    Required values:
    - `TELEGRAM_BOT_TOKEN` — from [@BotFather](https://t.me/BotFather)
    - `MOONSHOT_API_KEY` — from [Moonshot AI Platform](https://platform.moonshot.cn/)
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `BACKUP_S3_BUCKET` — for S3 backups (an IAM user with `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:ListBucket` on the target bucket)
 
 2. Start all services:
 
@@ -72,4 +77,6 @@ placebo/
   bot/                     # Telegram bot (Python, LangGraph)
   api/                     # FastAPI backend
   dashboard/               # React + Recharts frontend
+  backup/                  # Backup service (pg_dump + S3, cron + on-demand)
+  scripts/                 # CLI helpers (backup.sh, restore.sh)
 ```

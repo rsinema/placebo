@@ -50,17 +50,31 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build: ./api
     restart: unless-stopped
     env_file: .env
     ports:
       - "8000:8000"
+    environment:
+      BACKUP_SERVICE_URL: "http://backup:8001"
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      backup:
+        condition: service_started
 
   dashboard:
     build: ./dashboard

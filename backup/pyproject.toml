@@ -1,14 +1,13 @@
 [project]
-name = "placebo-api"
+name = "placebo-backup"
 version = "0.1.0"
-description = "FastAPI backend for Placebo dashboard"
+description = "Postgres backup/restore service for Placebo (S3-backed)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
-    "asyncpg>=0.30.0",
+    "boto3>=1.35.0",
     "pydantic-settings>=2.0",
-    "httpx>=0.27",
 ]
 
 [build-system]

@@ -10,11 +10,12 @@ Single-user by design. Everything runs locally via Docker Compose.
 
 ## Architecture
 
-Four Docker services:
+Five Docker services:
 
 - **Bot** (`bot/`) — Python, `python-telegram-bot` with JobQueue for scheduling, LangGraph agent for intent classification and multi-turn conversation flows. Connects to Postgres directly, not through the API.
-- **API** (`api/`) — FastAPI, read-only endpoints (`/metrics`, `/experiments`, `/checkins`) consumed by the dashboard. Does NOT write to the DB — the bot owns all writes.
+- **API** (`api/`) — FastAPI, read-only endpoints (`/metrics`, `/experiments`, `/checkins`) consumed by the dashboard. Does NOT write to the DB — the bot owns all writes. Also proxies backup/restore requests to the `backup` service.
 - **Dashboard** (`dashboard/`) — Vite + React + React Router + Recharts. Served by nginx which proxies `/api` requests to the FastAPI container.
+- **Backup** (`backup/`) — FastAPI service on internal port 8001. Owns `pg_dump`/`pg_restore` against the DB and S3 I/O via boto3. Runs a daily cron loop in-process plus exposes `/backups` (list, create) and `/backups/{key}/restore` for the API to proxy. Never exposed to the host.
 - **Postgres** (`db/migrations/`) — Stores `metrics`, `checkin_responses`, `experiments`, and `bot_settings` (key-value store for chat_id, schedule, etc.). Schema is managed by `golang-migrate/migrate`; a one-shot `migrate` Compose service runs `migrate up` against the DB on startup before the bots/API boot.
 
 ## Tooling
@@ -70,9 +71,16 @@ cd dashboard && bun run dev
 
 **Database schema** (`db/migrations/`): `checkin_responses` has a composite index on `(metric_id, logged_at)` — use this for efficient time-range queries per metric. See `db/MIGRATIONS.md` for the migration workflow.
 
+## Backups
+
+S3-backed Postgres backups. `backup` service runs daily at `BACKUP_HOUR_UTC` (default 10:00 UTC) and prunes snapshots older than `BACKUP_RETENTION_DAYS` (default 30). On-demand backup + restore from the dashboard `/backups` page; CLI fallbacks in `scripts/backup.sh` and `scripts/restore.sh`.
+
+S3 keys are laid out as `<BACKUP_S3_PREFIX>/<kind>/<UTC timestamp>.dump.gz` where `kind` is `daily`, `manual`, or `pre-restore`. Pre-restore snapshots are taken automatically before any restore and are exempt from pruning.
+
 ## Environment Variables
 
 Required in `.env`:
 - `TELEGRAM_BOT_TOKEN` — from @BotFather
 - `MOONSHOT_API_KEY` — from Moonshot AI Platform
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — for Postgres connection (both bot and API read these)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `BACKUP_S3_BUCKET` — for the backup service. Optional: `BACKUP_S3_PREFIX`, `BACKUP_RETENTION_DAYS`, `BACKUP_HOUR_UTC`, `BACKUP_S3_ENDPOINT_URL` (S3-compatible providers).

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from placebo_api import db
 from placebo_api.config import settings
-from placebo_api.routes import checkins, exercises, experiments, metrics
+from placebo_api.routes import backups, checkins, exercises, experiments, metrics
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.include_router(metrics.router)
 app.include_router(experiments.router)
 app.include_router(checkins.router)
 app.include_router(exercises.router)
+app.include_router(backups.router)
 
 
 @app.get("/health")

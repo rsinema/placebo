@@ -6,6 +6,19 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return res.json();
 }
 
+async function postJSON<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { method: "POST" });
+  if (!res.ok) {
+    let detail = `${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.detail) detail = body.detail;
+    } catch {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export interface Metric {
   id: string;
   name: string;
@@ -229,4 +242,40 @@ export function getWorkoutCalendar(days = 84): Promise<CalendarDay[]> {
 
 export function getWorkoutSessions(limit = 10): Promise<WorkoutSession[]> {
   return fetchJSON(`/workouts/sessions?limit=${limit}`);
+}
+
+// ── Backups ──────────────────────────────────────────────────────────────
+
+export interface Snapshot {
+  key: string;
+  size_bytes: number;
+  last_modified: string;
+  kind: "daily" | "manual" | "pre-restore" | "other";
+}
+
+export interface BackupRunResult {
+  key: string;
+  size_bytes: number;
+  started_at: string;
+  finished_at: string;
+  pruned: string[];
+}
+
+export interface RestoreRunResult {
+  restored_from: string;
+  pre_restore_key: string | null;
+  started_at: string;
+  finished_at: string;
+}
+
+export function getBackups(): Promise<Snapshot[]> {
+  return fetchJSON("/backups");
+}
+
+export function createBackup(): Promise<BackupRunResult> {
+  return postJSON("/backups");
+}
+
+export function restoreBackup(key: string): Promise<RestoreRunResult> {
+  return postJSON(`/backups/restore?key=${encodeURIComponent(key)}`);
 }
